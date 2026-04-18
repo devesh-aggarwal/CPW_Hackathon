@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How do you say that name?</title>
+    <style>
+      :root {
+        --bg: #fafaf7;
+        --fg: #1a1a1a;
+        --muted: #6b7280;
+        --border: #e5e5e0;
+        --accent: #111;
+        --accent-fg: #fff;
+        --card: #fff;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, -apple-system, system-ui, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        justify-content: center;
+      }
+      main {
+        width: 100%;
+        max-width: 560px;
+        padding: 4rem 1.25rem 3rem;
+      }
+      header {
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 1px solid var(--border);
+      }
+      h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.25rem;
+      }
+      .sub { color: var(--muted); margin: 0; font-size: 0.95rem; }
+
+      form {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+      input[type="text"] {
+        flex: 1;
+        padding: 0.75rem 0.9rem;
+        font-size: 1rem;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--fg);
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      input[type="text"]:focus { border-color: var(--accent); }
+      button {
+        padding: 0.75rem 1.1rem;
+        font-size: 0.95rem;
+        font-weight: 500;
+        border: 0;
+        border-radius: 10px;
+        background: var(--accent);
+        color: var(--accent-fg);
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      button:hover { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: wait; }
+
+      .scan-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .scan-row .divider { flex: 1; height: 1px; background: var(--border); }
+      .scan-btn {
+        background: var(--card);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        padding: 0.55rem 0.9rem;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .scan-btn:hover { background: #f3f3ee; opacity: 1; }
+      #photo-input { display: none; }
+
+      .result-name {
+        font-size: 2rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.25rem;
+      }
+      .ipa {
+        font-size: 1.15rem;
+        color: var(--muted);
+        font-family: ui-serif, Georgia, serif;
+        margin: 0 0 1.5rem;
+      }
+      .ipa .alphabet {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-right: 0.4rem;
+      }
+      .ipa-row + .ipa-row { margin-top: 0.2rem; }
+
+      .items { display: flex; flex-direction: column; gap: 0.5rem; }
+      .item {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.75rem 0.9rem;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .play {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: var(--accent-fg);
+        border: 0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+      .play svg { width: 14px; height: 14px; }
+      .item-meta { min-width: 0; flex: 1; }
+      .item-user { font-weight: 500; font-size: 0.95rem; }
+      .item-sub { font-size: 0.82rem; color: var(--muted); margin-top: 0.1rem; }
+
+      .empty, .error {
+        padding: 1rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+      }
+      .empty { color: var(--muted); background: var(--card); border: 1px dashed var(--border); }
+      .error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
+      .loading { color: var(--muted); font-size: 0.95rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <img class="logo" src="/logo.png" alt="" />
+        <div>
+          <h1>Say My Name.</h1>
+          <p class="sub">Hear how a name is pronounced by native speakers.</p>
+        </div>
+      </header>
+
+      <form id="f">
+        <input id="name" type="text" placeholder="Type a name…" autofocus autocomplete="off" required />
+        <button type="submit">Pronounce</button>
+      </form>
+
+      <div class="scan-row">
+        <div class="divider"></div>
+        <button type="button" id="scan-btn" class="scan-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Scan a nametag
+        </button>
+        <div class="divider"></div>
+      </div>
+      <input id="photo-input" type="file" accept="image/*" capture="environment" />
+
+      <div id="out"></div>
+    </main>
+
+    <script type="module">
+      import Tesseract from "https://esm.sh/tesseract.js@5";
+      import { heicTo, isHeic } from "https://esm.sh/heic-to@1";
+
+      const form = document.getElementById("f");
+      const input = document.getElementById("name");
+      const out = document.getElementById("out");
+      const btn = form.querySelector("button");
+      const scanBtn = document.getElementById("scan-btn");
+      const photoInput = document.getElementById("photo-input");
+
+      const escapeHtml = (s) =>
+        String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+      const playIcon = `<svg viewBox="0 0 10 12" fill="currentColor"><path d="M0 0 L10 6 L0 12 Z"/></svg>`;
+
+      async function pronounce(name) {
+        if (!name) return;
+        input.value = name;
+        out.innerHTML = `<p class="loading">Looking up “${escapeHtml(name)}”…</p>`;
+        btn.disabled = true;
+        try {
+          const r = await fetch(`/api/pronounce?name=${encodeURIComponent(name)}`);
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || `http ${r.status}`);
+
+          const items = Array.isArray(data.items) ? data.items : [];
+          const phonetics = Array.isArray(data.phonetics) ? data.phonetics : [];
+
+          if (!items.length && !phonetics.length && !data.ttsUrl) {
+            out.innerHTML = `<p class="empty">No pronunciations found for “${escapeHtml(name)}”.</p>`;
+            return;
+          }
+
+          const phoneticsHtml = phonetics.length
+            ? phonetics
+                .map(
+                  (p) => `<div class="ipa-row">
+                    <span class="alphabet">${escapeHtml(p.alphabet || "")}</span>
+                    <span>${escapeHtml(p.transcription || "")}</span>
+                  </div>`
+                )
+                .join("")
+            : "";
+
+          const itemsHtml = items.length
+            ? `<div class="items">${items
+                .map(
+                  (i) => `
+                  <div class="item">
+                    <button class="play" aria-label="Play">${playIcon}</button>
+                    <div class="item-meta">
+                      <div class="item-user">${escapeHtml(i.username || "")}</div>
+                      <div class="item-sub">${escapeHtml(i.country || "")} · rating ${i.rate ?? 0}</div>
+                    </div>
+                    <audio preload="none" src="${escapeHtml(i.mp3)}"></audio>
+                  </div>`
+                )
+                .join("")}</div>`
+            : data.ttsUrl
+            ? `<div class="items">
+                <div class="item">
+                  <button class="play" aria-label="Play">${playIcon}</button>
+                  <div class="item-meta">
+                    <div class="item-user">AI-generated</div>
+                    <div class="item-sub">ElevenLabs · no native recording found</div>
+                  </div>
+                  <audio preload="none" src="${escapeHtml(data.ttsUrl)}"></audio>
+                </div>
+              </div>`
+            : `<p class="empty">No audio pronunciations, but phonetics shown above.</p>`;
+
+          out.innerHTML = `
+            <p class="result-name">${escapeHtml(name)}</p>
+            ${phoneticsHtml ? `<div class="ipa">${phoneticsHtml}</div>` : ""}
+            ${itemsHtml}
+          `;
+
+          out.querySelectorAll(".play").forEach((b) => {
+            b.addEventListener("click", () => {
+              const audio = b.parentElement.querySelector("audio");
+              out.querySelectorAll("audio").forEach((a) => a !== audio && a.pause());
+              audio.currentTime = 0;
+              audio.play();
+            });
+          });
+
+          const firstAudio = out.querySelector("audio");
+          if (firstAudio) firstAudio.play().catch(() => {});
+        } catch (err) {
+          out.innerHTML = `<p class="error">${escapeHtml(err.message)}</p>`;
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        pronounce(input.value.trim());
+      });
+
+      scanBtn.addEventListener("click", () => photoInput.click());
+
+      photoInput.addEventListener("change", async () => {
+        const file = photoInput.files?.[0];
+        if (!file) return;
+        out.innerHTML = `<p class="loading">Reading nametag…</p>`;
+        btn.disabled = true;
+        try {
+          let imageSource = file;
+          const looksHeic =
+            /\.hei[cf]$/i.test(file.name) ||
+            /image\/hei[cf]/i.test(file.type) ||
+            (await isHeic(file).catch(() => false));
+          if (looksHeic) {
+            out.innerHTML = `<p class="loading">Converting HEIC image…</p>`;
+            imageSource = await heicTo({ blob: file, type: "image/jpeg", quality: 0.9 });
+            out.innerHTML = `<p class="loading">Reading nametag…</p>`;
+          }
+          const { data } = await Tesseract.recognize(imageSource, "eng");
+          const raw = (data.text || "").trim();
+          const name = extractName(raw);
+          if (!name) {
+            out.innerHTML = `<p class="empty">Couldn't read a name from that image.${
+              raw ? ` <br><span class="item-sub">Detected text: ${escapeHtml(raw)}</span>` : ""
+            }</p>`;
+            btn.disabled = false;
+            return;
+          }
+          pronounce(name);
+        } catch (err) {
+          const msg = err?.message || err?.toString?.() || JSON.stringify(err) || "unknown error";
+          out.innerHTML = `<p class="error">OCR failed: ${escapeHtml(msg)}</p>`;
+          btn.disabled = false;
+        } finally {
+          photoInput.value = "";
+        }
+      });
+
+      // Pick the most name-like line from OCR output: skip common nametag labels,
+      // prefer lines of 1–4 alphabetic words starting with capitals.
+      function extractName(text) {
+        const lines = text
+          .split(/\n+/)
+          .map((l) => l.trim())
+          .filter(Boolean);
+        const skip = /^(hello|hi|my name is|name|i am|i'm)$/i;
+        const candidates = lines
+          .map((l) => l.replace(/^(hello[,!]?\s*my name is|my name is|hello[,!]?\s*i'?m|i'?m|hello[,!]?|name[:\-]?)/i, "").trim())
+          .filter((l) => l && !skip.test(l))
+          .filter((l) => /^[A-Za-zÀ-ÿ'’\-\.\s]{2,}$/.test(l))
+          .sort((a, b) => {
+            const score = (s) => {
+              const words = s.split(/\s+/);
+              if (words.length < 1 || words.length > 4) return -10;
+              const capWords = words.filter((w) => /^[A-ZÀ-Ý]/.test(w)).length;
+              return capWords - Math.abs(words.length - 2);
+            };
+            return score(b) - score(a);
+          });
+        return candidates[0] || "";
+      }
+    </script>
+  </body>
+</html>
